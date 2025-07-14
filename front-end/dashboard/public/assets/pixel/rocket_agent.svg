@@ -1,0 +1,8 @@
+<svg width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+  <rect x="12" y="4" width="8" height="8" fill="#222"/>
+  <rect x="10" y="12" width="12" height="12" fill="#222"/>
+  <rect x="10" y="24" width="4" height="6" fill="#fff"/>
+  <rect x="18" y="24" width="4" height="6" fill="#fff"/>
+  <rect x="12" y="16" width="8" height="8" fill="#c00"/>
+  <text x="16" y="22" font-size="8" font-family="monospace" fill="#fff" text-anchor="middle" font-weight="bold">R</text>
+</svg> 

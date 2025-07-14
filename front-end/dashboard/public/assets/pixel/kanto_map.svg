@@ -1,0 +1,18 @@
+<svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sky background -->
+  <rect width="200" height="150" fill="#7ec0ee"/>
+  <!-- Main landmass -->
+  <rect x="30" y="30" width="140" height="90" fill="#b6e388" stroke="#228B22" stroke-width="4"/>
+  <!-- Cities (yellow dots) -->
+  <circle cx="50" cy="60" r="6" fill="#FFD700" stroke="#b8860b" stroke-width="2"/>
+  <circle cx="120" cy="90" r="6" fill="#FFD700" stroke="#b8860b" stroke-width="2"/>
+  <circle cx="80" cy="100" r="6" fill="#FFD700" stroke="#b8860b" stroke-width="2"/>
+  <circle cx="160" cy="50" r="6" fill="#FFD700" stroke="#b8860b" stroke-width="2"/>
+  <!-- Water (blue rectangles) -->
+  <rect x="30" y="120" width="140" height="10" fill="#4682B4"/>
+  <rect x="30" y="20" width="140" height="10" fill="#4682B4"/>
+  <!-- Simple routes (brown lines) -->
+  <rect x="56" y="66" width="64" height="4" fill="#8B4513"/>
+  <rect x="120" y="96" width="4" height="14" fill="#8B4513"/>
+  <rect x="80" y="106" width="4" height="14" fill="#8B4513"/>
+</svg> 

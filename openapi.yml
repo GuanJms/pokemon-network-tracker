@@ -1,0 +1,265 @@
+openapi: 3.0.3
+
+info:
+  title: Pokemon tracking network
+  description: A simple API to manage Pokemon sighting, create agent, trainer team, monitoring queue, live streaming events.
+  version: 1.0.0
+
+
+servers:
+  - url: http://localhost:3000
+    description: Local Dev Server
+
+
+paths:
+  /sighting:
+    post:
+      summary: Submit a Pokemon sighting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pokemon:
+                  type: string
+                location:
+                  type: string
+                element:
+                  $ref : '#/components/schemas/element'
+              required:
+                - pokemon
+                - location
+                - element
+      responses:
+        '200':
+          description: Successfully submitted Pokemon sighting
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+    get:
+      summary: Get all Pokémon sightings
+      responses:
+        '200':
+          description: List of all sightings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    pokemon:
+                      type: string
+                    location:
+                      type: string
+                    element:
+                      $ref: '#/components/schemas/element'
+                  required: [id, pokemon, location, element]
+
+  /spawn/rocket-agent:
+    post:
+      summary: Create a new Rocket agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+              required:
+                - name
+      responses:
+        '200':
+          description: Successfully created a Rocket agent
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error  
+    get:
+      summary: Get all Rocket agents
+      responses:
+        '200':
+          description: List of all agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    status:
+                      type: string
+                  required: [id, name, status]
+
+  /spawn/team:
+    post:
+      summary: Create a new sighting team
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                elements:
+                  type: array
+                  items:
+                    $ref : '#/components/schemas/element'
+              required:
+                - name
+                - elements
+      responses:
+        '200':
+          description: Successfully created sighting team
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+
+  /state/hub/active:
+    get:
+      summary: Return current live users
+      responses:
+        '200':
+          description: Successfully returned the number
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - count
+                properties:
+                  count:
+                    type: number
+                    description: Number of current live users
+
+
+  /state/dead-message:
+    get:
+      summary: Return dead messages count (escape pokemon)
+      responses:
+        '200':
+          description: Successfully returned the number
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - count
+                properties:
+                  count:
+                    type: number
+                    description: Number of dead messages (escaped pokemon)
+
+
+  /state/queue:
+    post:
+      summary: Return queue stats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+              required:
+                - name
+      responses:
+        '201':
+          description: Queue stats returend
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/queueStats'
+        '400':
+          description: Queue not found
+
+  /reset/agent:
+    post:
+      summary: Deleting all agents
+      responses:
+        '200':
+          description: Successfully stopped all agent
+        '500':
+          description: Ubterbak server error  
+
+
+  
+  # /state/logs:
+  #   get:
+  #     summary: Return recent task-related events (published, started, failed)
+  #     responses:
+  #       '200':
+  #         description: Logs successfuly returned 
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: array
+  #               items:
+  #                 $ref: '#/components/schemas/log'
+  #       '400':
+  #         description: Logs failed to return
+
+  /state/events:
+    get:
+      summary: WebSocket connection to stream live backend events
+      description: >
+        Establishes a WebSocket connection. The server sends JSON-encoded event logs
+        as they occur in real time. Clients do not send messages.
+      tags:
+        - WebSocket
+
+      responses:
+        '101':
+          description: Switching Protocols - Upgrade to WebSocket
+
+
+
+components:
+  schemas:
+    element:
+      type: string
+      enum: [fire, grass, ghost, water, fighting, lighting]
+    queueStats:
+      type: object
+      properties:
+        name:
+          type: string
+        messages:
+          type: integer
+        consumers:
+          type: integer
+      required: [name, messages, consumers]
+    log:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Type of event (e.g. task_created, task_failed)
+        pokemon:
+          type: string
+        location:
+          type: string
+        element:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8610 timestamp of the event
+      required: [type, pokemon, location, element, timestamp]
+        

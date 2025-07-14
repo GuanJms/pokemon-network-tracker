@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./pokenmon-network-tracker
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - rabbit
+    environment:
+      - RABBIT_URL=amqp://guest:guest@rabbit:5672/
+
+  rabbit:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # management UI
+
+  dashboard:
+    build:
+      context: ./front-end/dashboard
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_WS_URL=ws://localhost:3000/state/events
+      - VITE_API_URL=http://localhost:3000
+    depends_on:
+      - api
