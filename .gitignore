@@ -21,3 +21,10 @@ build/
 # Logs
 logs
 *.log
+
+# Binaries and executables
+api
+*.exe
+*.dll
+*.so
+*.dylib
