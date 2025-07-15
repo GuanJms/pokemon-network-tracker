@@ -19,7 +19,7 @@ const LOCATIONS = [
 
 const PixelControlPanel: React.FC<{
   onAddPokemon: (pokemon: { name: string; location: string; element: string }) => void;
-  onAddAgent: (agent: { name: string; avatar: string }) => void;
+  onAddAgent: (agent: { name: string; avatar: string; imageNum: number }) => void;
   onReset: () => void;
 }> = ({ onAddPokemon, onAddAgent, onReset }) => {
   // Pokémon form state
@@ -29,7 +29,7 @@ const PixelControlPanel: React.FC<{
 
   // Agent form state
   const [agentName, setAgentName] = useState('Rocket Agent');
-  const [avatar, setAvatar] = useState(AGENT_AVATARS[0].sprite);
+  const [avatarIdx, setAvatarIdx] = useState(0);
   const [addingAgent, setAddingAgent] = useState(false);
 
   return (
@@ -90,7 +90,7 @@ const PixelControlPanel: React.FC<{
             e.preventDefault();
             setAddingAgent(true);
             setTimeout(() => {
-              onAddAgent({ name: agentName, avatar });
+              onAddAgent({ name: agentName, avatar: AGENT_AVATARS[avatarIdx].sprite, imageNum: avatarIdx });
               setAddingAgent(false);
             }, 500);
           }}
@@ -103,12 +103,12 @@ const PixelControlPanel: React.FC<{
             placeholder="Agent Name"
           />
           <div className="flex items-center gap-2 mt-1">
-            {AGENT_AVATARS.map(a => (
+            {AGENT_AVATARS.map((a, idx) => (
               <button
                 key={a.sprite}
                 type="button"
-                className={`border-4 border-pixel-border p-1 ${avatar === a.sprite ? 'bg-pixel-blue' : 'bg-pixel-gray'} transition-transform hover:scale-110`}
-                onClick={() => setAvatar(a.sprite)}
+                className={`border-4 border-pixel-border p-1 ${avatarIdx === idx ? 'bg-pixel-blue' : 'bg-pixel-gray'} transition-transform hover:scale-110`}
+                onClick={() => setAvatarIdx(idx)}
               >
                 <img src={a.sprite} alt={a.name} className="w-8 h-8" style={{ imageRendering: 'pixelated' }} />
               </button>

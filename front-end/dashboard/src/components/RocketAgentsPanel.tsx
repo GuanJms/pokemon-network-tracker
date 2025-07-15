@@ -1,9 +1,15 @@
 import React from 'react';
 
+const AGENT_AVATARS = [
+  '/assets/pixel/rocket_agent.svg',
+  '/assets/pixel/rocket_agent2.svg',
+  '/assets/pixel/rocket_agent3.svg',
+];
+
 interface Agent {
   id: number;
   name: string;
-  avatar: string;
+  imageNum?: number;
   lastLog?: string;
   task?: { pokemon: string; location: string; status: 'processing'|'started'|'captured'|'failed'; element?: string };
 }
@@ -33,7 +39,7 @@ const RocketAgentsPanel: React.FC<Props> = ({ agents }) => {
           {/* Agent avatar & name row */}
           <div className="flex items-center gap-2">
             <img
-              src={a.avatar}
+              src={AGENT_AVATARS[a.imageNum ?? 0]}
               alt={a.name}
               width={24}
               height={24}

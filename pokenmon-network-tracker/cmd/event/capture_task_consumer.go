@@ -18,6 +18,7 @@ var AgentList []*RocketAgent
 type RocketAgent struct {
 	Id          int    `json:"id,omitempty"`
 	Name        string `json:"name"`
+	ImageNum    int    `json:"imageNum"`
 	conn        *amqp.Connection
 	queueName   string
 	queueArgs   amqp.Table
@@ -28,10 +29,11 @@ type RocketAgent struct {
 	doneCh      chan struct{}
 }
 
-func NewRocketAgent(conn *amqp.Connection, id int, name string, b broadcast.Broadcaster) (*RocketAgent, error) {
+func NewRocketAgent(conn *amqp.Connection, id int, name string, imageNum int, b broadcast.Broadcaster) (*RocketAgent, error) {
 	agent := &RocketAgent{
 		Id:        id,
 		Name:      name,
+		ImageNum:  imageNum,
 		conn:      conn,
 		queueName: taskQueue,
 		b:         b,

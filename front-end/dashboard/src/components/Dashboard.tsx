@@ -50,7 +50,15 @@ const Dashboard: React.FC = () => {
     return saved ? (JSON.parse(saved) as Sighting) : null;
   });
 
-  const [agentsState, setAgentsState] = useState<{ id: number; name: string; avatar: string; lastLog?: string; task?: {pokemon:string; location:string; status:'processing'|'started'|'captured'|'failed'; element?:string} }[]>(() => {
+  // Update agentsState type to always include imageNum
+  interface AgentState {
+    id: number;
+    name: string;
+    imageNum?: number;
+    lastLog?: string;
+    task?: {pokemon:string; location:string; status:'processing'|'started'|'captured'|'failed'; element?:string};
+  }
+  const [agentsState, setAgentsState] = useState<AgentState[]>(() => {
     const saved = sessionStorage.getItem('agentsState');
     if (!saved) return [];
     try {
@@ -66,13 +74,17 @@ const Dashboard: React.FC = () => {
     const syncAgents = () => {
       apiService.getAgentsState().then(list => {
         if(!Array.isArray(list)) return;
-        setAgentsState(prev => {
-          const merged = list.map(a=>{
-            const existing = prev.find(p=>p.id===a.id);
-            return existing ?? { id:a.id, name:a.name, avatar:'/assets/pixel/rocket_agent.png' };
-          });
-          return merged;
-        });
+        console.log('Fetched agents from backend:', list);
+        setAgentsState(
+          list.map((a: unknown) => {
+            const agent = a as Partial<AgentState>;
+            const imageNum = typeof agent.imageNum === 'number' ? agent.imageNum : 0;
+            return {
+              ...agent,
+              imageNum,
+            } as AgentState;
+          })
+        );
       }).catch(()=>{});
     };
     syncAgents();
@@ -115,19 +127,19 @@ const Dashboard: React.FC = () => {
   };
 
   // Add Agent handler
-  const handleAddAgent = (agent: { name: string; avatar: string }) => {
+  const handleAddAgent = (agent: { name: string; avatar: string; imageNum: number }) => {
     pushToast(`📝 Spawned agent ${agent.name}`);
     const id = nextAgentId;
     setNextAgentId(id + 1);
 
     // Update local state immediately
-    setAgentsState((prev) => [...prev, { id, name: agent.name, avatar: agent.avatar }]);
+    setAgentsState((prev) => [...prev, { id, name: agent.name, imageNum: typeof agent.imageNum === 'number' ? agent.imageNum : 0 }]);
 
-    // POST to backend
+    // POST to backend with imageNum
     fetch(`${apiService.getBaseUrl()}/spawn/rocket-agent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, name: agent.name }),
+      body: JSON.stringify({ id, name: agent.name, imageNum: agent.imageNum }),
     })
       .then(res => res.ok ? res.json() : Promise.reject(res))
       .catch(() => pushToast('Failed to add agent!'));

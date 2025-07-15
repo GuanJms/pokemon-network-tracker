@@ -21,6 +21,7 @@ export interface AgentStatus {
     lat: number;
     lng: number;
   };
+  imageNum?: number; // Add imageNum for avatar selection
 }
 
 // Task event interface

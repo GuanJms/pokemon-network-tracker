@@ -21,7 +21,8 @@ type SightingPayload struct {
 
 type RocketAgentPayload struct {
 	event.RocketAgent
-	Message string `json:"message"`
+	Message  string `json:"message"`
+	ImageNum int    `json:"imageNum"`
 }
 
 type Client struct {
@@ -116,7 +117,7 @@ func (app *Config) SpawnRocketAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	agent, err := event.NewRocketAgent(app.rabbitConn, a.Id, a.Name, app.hub)
+	agent, err := event.NewRocketAgent(app.rabbitConn, a.Id, a.Name, a.ImageNum, app.hub)
 
 	if err != nil {
 		log.Println(err)
