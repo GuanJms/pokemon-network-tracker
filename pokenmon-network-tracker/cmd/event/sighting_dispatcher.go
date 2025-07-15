@@ -53,7 +53,7 @@ func DispatchSetup(conn *amqp.Connection, teamName string, topics []string, b br
 		return err
 	}
 
-	go listenDispatch(teamName, msgs, b)
+	go listenDispatch(teamName, msgs, b, conn)
 
 	return nil
 }
@@ -63,7 +63,12 @@ type captureTask struct {
 	TaskId int `json:"taskId"`
 }
 
-func listenDispatch(dispatcherName string, msgs <-chan amqp.Delivery, b broadcast.Broadcaster) {
+func listenDispatch(dispatcherName string, msgs <-chan amqp.Delivery, b broadcast.Broadcaster, conn *amqp.Connection) {
+	ch, err := conn.Channel()
+	if err != nil {
+		return
+	}
+	defer ch.Close()
 	for d := range msgs {
 		var s QueueSighting
 		if err := json.Unmarshal(d.Body, &s); err != nil {
@@ -79,22 +84,11 @@ func listenDispatch(dispatcherName string, msgs <-chan amqp.Delivery, b broadcas
 		c.TaskId = taskId
 		taskId++
 		c.Sighting = s.Sighting
-		c.publish(s.CaptureTime)
+		c.publish(s.CaptureTime, ch)
 	}
 }
 
-func (c *captureTask) publish(duration int) error {
-	conn, err := RabbitMQConnect()
-	if err != nil {
-		return err
-	}
-	ch, err := conn.Channel()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	defer ch.Close()
-
+func (c *captureTask) publish(duration int, ch *amqp.Channel) error {
 	body, err := json.Marshal(c)
 	if err != nil {
 		return fmt.Errorf("failed to marshal capture task: %w", err)
