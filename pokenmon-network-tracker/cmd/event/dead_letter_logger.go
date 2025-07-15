@@ -54,6 +54,7 @@ func DLQSetup(conn *amqp.Connection, b broadcast.Broadcaster) error {
 
 			fmt.Println(TotalCount)
 			msg := fmt.Sprintf("[DLQ] Missed opportunity! %s escaped from %s (%s)", task.Pokemon, task.Location, task.Element)
+			TotalCount++
 			b.Broadcast(msg, "pokemon escape", true, nil)
 		}
 	}()
