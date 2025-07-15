@@ -22,8 +22,8 @@ services:
     build:
       context: ./front-end/dashboard
       args:
-        VITE_API_BASE: http://api:3000
-        VITE_WS_URL: ws://api:3000/state/events
+        VITE_API_BASE: http://174.138.69.194:3000
+        VITE_WS_URL: ws://174.138.69.194:3000/state/events
     ports:
       - "8080:80"
     depends_on:
