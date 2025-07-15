@@ -94,7 +94,7 @@ const Dashboard: React.FC = () => {
   const [toasts, setToasts] = useState<{id:string; message:string}[]>([]);
   const [nextAgentId, setNextAgentId] = useState(() => {
     const saved = sessionStorage.getItem('nextAgentId');
-    return saved ? Number(saved) : 0;
+    return saved ? Number(saved) : 1; // Start at 1 instead of 0
   });
   const wsRef = useRef<WebSocketService | null>(null);
 
