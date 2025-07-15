@@ -24,7 +24,7 @@ services:
     ports:
       - "8080:80"
     environment:
-      - VITE_WS_URL=ws://localhost:3000/state/events
-      - VITE_API_URL=http://localhost:3000
+      - VITE_WS_URL=ws://api:3000/state/events
+      - VITE_API_URL=http://api:3000
     depends_on:
       - api
