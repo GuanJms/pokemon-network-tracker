@@ -20,7 +20,7 @@ interface Props {
 
 const RocketAgentsPanel: React.FC<Props> = ({ agents }) => {
   const colorFor = (msg?: string) => {
-    if (!msg) return 'text-pixel-gray';
+    if (!msg) return 'text-white';
     const lower = msg.toLowerCase();
     if (lower.includes('captured')) return 'text-green-400';
     if (lower.includes('failed') || lower.includes('escape')) return 'text-red-400';
@@ -29,44 +29,51 @@ const RocketAgentsPanel: React.FC<Props> = ({ agents }) => {
   };
 
   return (
-    <div className="flex flex-wrap gap-3">
-      {agents.map((a) => (
-        <div
-          key={a.id}
-          className="bg-pixel-dark border-4 border-pixel-border p-2 flex flex-col items-start relative"
-          style={{ width: 200, minHeight: 140 }}
-        >
-          {/* Agent avatar & name row */}
-          <div className="flex items-center gap-2">
-            <img
-              src={AGENT_AVATARS[a.imageNum ?? 0]}
-              alt={a.name}
-              width={24}
-              height={24}
-              style={{ imageRendering: 'pixelated' }}
-            />
-            <div className="text-xs text-pixel-yellow">#{a.id} {a.name}</div>
-          </div>
+    <div className="h-full overflow-y-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {agents.map((a) => (
+          <div
+            key={a.id}
+            className="bg-pixel-dark border-2 border-pixel-border p-3 flex flex-col items-start relative rounded"
+            style={{ minHeight: 120 }}
+          >
+            {/* Agent avatar & name row */}
+            <div className="flex items-center gap-2">
+              <img
+                src={AGENT_AVATARS[a.imageNum ?? 0]}
+                alt={a.name}
+                width={20}
+                height={20}
+                style={{ imageRendering: 'pixelated' }}
+              />
+              <div className="text-xs text-pixel-yellow font-bold">#{a.id} {a.name}</div>
+            </div>
 
-          {/* Task sprite overlay */}
-          {a.task && (
-            <img
-              src={`/assets/pixel/${a.task.pokemon.toLowerCase()}.png`}
-              alt={a.task.pokemon}
-              width={56}
-              height={56}
-              className="absolute top-1 right-1"
-              style={{ imageRendering: 'pixelated', filter: a.task.status==='captured'?'drop-shadow(0 0 4px #31c48d)':a.task.status==='failed'?'grayscale(1) brightness(0.6)':undefined }}
-            />
-          )}
+            {/* Task sprite overlay */}
+            {a.task && (
+              <img
+                src={`/assets/pixel/${a.task.pokemon.toLowerCase()}.png`}
+                alt={a.task.pokemon}
+                width={40}
+                height={40}
+                className="absolute top-1 right-1"
+                style={{ imageRendering: 'pixelated', filter: a.task.status==='captured'?'drop-shadow(0 0 4px #31c48d)':a.task.status==='failed'?'grayscale(1) brightness(0.6)':undefined }}
+              />
+            )}
 
-          {/* Log message */}
-          <div className={`text-[10px] mt-2 whitespace-pre-wrap break-words ${colorFor(a.lastLog)}`} style={{ minHeight: 60, width: '100%' }}>
-            {a.lastLog || 'Idle'}
+            {/* Log message */}
+            <div className={`text-[10px] mt-2 whitespace-pre-wrap break-words ${colorFor(a.lastLog)} leading-relaxed`} style={{ minHeight: 50, width: '100%', maxWidth: '90%' }}>
+              {a.lastLog || 'Idle'}
+            </div>
           </div>
-        </div>
-      ))}
-      {agents.length === 0 && <div className="text-pixel-gray text-xs">No agents</div>}
+        ))}
+        {agents.length === 0 && (
+          <div className="col-span-full text-center text-pixel-gray text-sm py-8">
+            <div className="text-2xl mb-2">🤖</div>
+            <div>No agents deployed</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

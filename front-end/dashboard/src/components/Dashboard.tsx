@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import PixelPanel from './PixelPanel';
-import PixelArrow from './PixelArrow';
 import PixelControlPanel from './PixelControlPanel';
 // Sightings panel removed
 import RocketAgentsPanel from './RocketAgentsPanel';
@@ -42,7 +41,6 @@ const Dashboard: React.FC = () => {
     const saved = sessionStorage.getItem('logs');
     return saved ? (JSON.parse(saved) as LogEntry[]) : [];
   });
-  const [arrowActive, setArrowActive] = useState<{ [key: string]: boolean }>({});
   const [escapeCount, setEscapeCount] = useState<number>(0);
   // Sightings panel removed
   const [currentDispatch, setCurrentDispatch] = useState<Sighting | null>(() => {
@@ -92,22 +90,8 @@ const Dashboard: React.FC = () => {
     return ()=> clearInterval(interval);
   },[]);
   const [toasts, setToasts] = useState<{id:string; message:string}[]>([]);
-  const [nextAgentId, setNextAgentId] = useState(() => {
-    const saved = sessionStorage.getItem('nextAgentId');
-    return saved ? Number(saved) : 1; // Start at 1 instead of 0
-  });
+  const [liveCount, setLiveCount] = useState<number>(0);
   const wsRef = useRef<WebSocketService | null>(null);
-
-  // Persist nextAgentId whenever it changes
-  useEffect(() => {
-    sessionStorage.setItem('nextAgentId', String(nextAgentId));
-  }, [nextAgentId]);
-
-  // Helper to trigger arrow animation
-  const triggerArrow = (key: string) => {
-    setArrowActive((prev) => ({ ...prev, [key]: true }));
-    setTimeout(() => setArrowActive((prev) => ({ ...prev, [key]: false })), 600);
-  };
 
   // Add Pokémon handler
   const handleAddPokemon = (pokemon: { name: string; location: string; element: string }) => {
@@ -120,7 +104,6 @@ const Dashboard: React.FC = () => {
     })
       .then(res => res.ok ? res.json() : Promise.reject(res))
       .catch(() => pushToast('Failed to add sighting!'));
-    triggerArrow('dispatch');
     // update dispatch center immediately
     setCurrentDispatch({ id: crypto.randomUUID(), pokemon: pokemon.name, location: pokemon.location, element: pokemon.element });
     // toast auto-dismiss handles.
@@ -129,21 +112,14 @@ const Dashboard: React.FC = () => {
   // Add Agent handler
   const handleAddAgent = (agent: { name: string; avatar: string; imageNum: number }) => {
     pushToast(`📝 Spawned agent ${agent.name}`);
-    const id = nextAgentId;
-    setNextAgentId(id + 1);
-
-    // Update local state immediately
-    setAgentsState((prev) => [...prev, { id, name: agent.name, imageNum: typeof agent.imageNum === 'number' ? agent.imageNum : 0 }]);
-
-    // POST to backend with imageNum
+    // POST to backend; backend assigns ID
     fetch(`${apiService.getBaseUrl()}/spawn/rocket-agent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, name: agent.name, imageNum: agent.imageNum }),
+      body: JSON.stringify({ name: agent.name, imageNum: agent.imageNum }),
     })
       .then(res => res.ok ? res.json() : Promise.reject(res))
       .catch(() => pushToast('Failed to add agent!'));
-    triggerArrow('dlq');
     // toast auto-dismiss handles.
   };
 
@@ -173,7 +149,6 @@ const Dashboard: React.FC = () => {
     setLogs([]);
     setCurrentDispatch(null);
     setAgentsState([]);
-    setNextAgentId(0);
     apiService.resetSystem().then(()=>{
       // Refresh queue stats from backend so monitor stays accurate
       apiService.getQueueStats().then((qs)=>{
@@ -217,12 +192,12 @@ const Dashboard: React.FC = () => {
 
           // Headquarter dispatch arrow trigger
           if (data.message.includes('Dispatch capture task')) {
-            triggerArrow('dispatch');
+            // triggerArrow('dispatch'); // Removed
           }
 
           // Pokemon escape -> Escape Zone arrow trigger and counter
           if ((data.message.includes('Missed opportunity') || data.message.includes('escaped'))) {
-            triggerArrow('dlq');
+            // triggerArrow('dlq'); // Removed
             apiService.getDLQCount().then(count => setEscapeCount(count)).catch(()=>{});
           }
 
@@ -270,8 +245,8 @@ const Dashboard: React.FC = () => {
             ...prev,
             recent_events: [...prev.recent_events, data].slice(-100),
           }));
-          if (data.type === 'dispatch') triggerArrow('dispatch');
-          if (data.type === 'failure' || data.type === 'retry') triggerArrow('dlq');
+          // if (data.type === 'dispatch') triggerArrow('dispatch'); // Removed
+          // if (data.type === 'failure' || data.type === 'retry') triggerArrow('dlq'); // Removed
         });
         ws.subscribe('state_update', (data: SystemState) => {
           setSystemState(data);
@@ -339,6 +314,11 @@ const Dashboard: React.FC = () => {
   // Fetch initial escape count on mount
   useEffect(() => {
     apiService.getDLQCount().then(count => setEscapeCount(count)).catch(()=>{});
+    // Fetch live count
+    const fetchLiveCount = () => apiService.getLiveUserCount().then(count => setLiveCount(count)).catch(()=>{});
+    fetchLiveCount();
+    const liveCountInterval = setInterval(fetchLiveCount, 5000);
+    return () => clearInterval(liveCountInterval);
   }, []);
 
   useEffect(() => {
@@ -352,83 +332,186 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(heartbeat);
   }, []);
 
+  // System health status calculation
+  const getSystemHealthStatus = () => {
+    const wsConnected = systemState.system_health?.websocket === 'connected';
+    const hasAgents = agentsState.length > 0;
+    const hasActiveTasks = (systemState.queues[0]?.messages ?? 0) > 0;
+    
+    if (wsConnected && hasAgents && hasActiveTasks) return { status: 'healthy', color: 'text-green-400', icon: '●' };
+    if (wsConnected && hasAgents) return { status: 'idle', color: 'text-yellow-400', icon: '◐' };
+    if (wsConnected) return { status: 'degraded', color: 'text-orange-400', icon: '◑' };
+    return { status: 'critical', color: 'text-red-400', icon: '○' };
+  };
+
+  const systemHealth = getSystemHealthStatus();
+
   return (
-    <div className="min-h-screen bg-pixel-dark px-2 py-4 flex flex-col md:flex-row items-stretch md:items-start relative" style={{ fontFamily: "'Press Start 2P', monospace" }}>
-      {/* Dashboard grid */}
-      {/* Responsive grid: single column on mobile, 2 cols on small screens, 12-col layout from md upward */}
-      <div className="flex-1 w-full max-w-6xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-4 md:gap-4 auto-rows-min relative">
-        {/* Sightings panel removed */}
-        {/* Dispatch Center */}
-        <div className="col-span-12 md:col-span-3 md:col-start-5 md:row-span-2 relative">
-          <PixelPanel title="Dispatch Center" color="green" headerIcon={null}>
-            {currentDispatch ? (
-              <div className="flex flex-col items-center">
-                <img src={`/assets/pixel/${currentDispatch.pokemon.toLowerCase()}.png`} alt={currentDispatch.pokemon} className="mb-2" style={{ imageRendering: 'pixelated', width: 64, height: 64 }} />
-                <div className="text-center text-lg mt-2">{currentDispatch.pokemon}</div>
-                <div className="text-xs text-pixel-yellow mt-1">{currentDispatch.location}</div>
-              </div>
-            ) : (
-              <div className="text-center text-pixel-gray text-sm">No active dispatch</div>
-            )}
-          </PixelPanel>
-          {/* Arrow to Task Queue Monitor */}
-          <div className="hidden md:block absolute top-1/2 right-[-28px] z-10">
-            <PixelArrow direction="right" active={arrowActive['dispatch']} />
+    <div className="min-h-screen bg-pixel-dark p-4" style={{ fontFamily: "'Press Start 2P', monospace" }}>
+      {/* Hero Status Bar */}
+      <div className="bg-pixel-gray border-4 border-pixel-border mb-6 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <span className={`${systemHealth.color} text-lg`}>{systemHealth.icon}</span>
+              <span className="text-white">System: {systemHealth.status.toUpperCase()}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-pixel-green">●</span>
+              <span className="text-white">Live Users: {liveCount}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-pixel-orange">⚡</span>
+              <span className="text-white">Active Tasks: {systemState.queues[0]?.messages ?? 0}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-pixel-red">💀</span>
+              <span className="text-white">Escaped: {escapeCount}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-pixel-blue">🤖</span>
+            <span className="text-white">Agents: {agentsState.length}</span>
           </div>
         </div>
-        {/* Task Queue Monitor */}
-        <div className="col-span-12 md:col-span-3 md:col-start-9 md:row-span-2 relative">
-          <PixelPanel title="Task Queue Monitor" color="orange" headerIcon={null}>
-            <div className="bg-pixel-gray p-2 rounded mb-2 flex items-center">
-              <span className="bg-pixel-green px-2 py-1 rounded mr-2">{systemState.queues[0]?.name || 'pokemon_tasks'}</span>
-            </div>
-            <div className="flex flex-col space-y-1 text-xs">
-              <div className="flex justify-between"><span>POKEMON TASKS</span><span>{systemState.queues[0]?.messages ?? 0}</span></div>
-              <div className="flex justify-between"><span>AGENTS</span><span>{systemState.queues[0]?.consumers ?? 0}</span></div>
-            </div>
-          </PixelPanel>
-          {/* Arrow to DLQ Zone */}
-          <div className="hidden md:block absolute bottom-[-32px] left-1/2 -translate-x-1/2 z-10">
-            <PixelArrow direction="down" active={arrowActive['dlq']} />
+      </div>
+
+      {/* Three-Column Layout for Desktop, Stacked for Mobile */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 max-w-7xl mx-auto">
+         
+        {/* Control Panel - Left Column on Desktop, Top on Mobile */}
+        <div className="xl:col-span-3">
+          <div className="sticky top-4">
+            <PixelControlPanel onAddPokemon={handleAddPokemon} onAddAgent={handleAddAgent} onReset={handleReset} />
           </div>
         </div>
-        {/* Rocket Agents */}
-        <div className="col-span-12 md:col-span-6 md:row-span-2 mt-4 relative">
-          <PixelPanel title="Rocket Agents" color="blue" headerIcon={null}>
-            <RocketAgentsPanel agents={agentsState} />
-          </PixelPanel>
-          <div className="hidden md:block absolute right-[-28px] top-1/2 z-10">
-            <PixelArrow direction="right" active={arrowActive['dlq']} />
+        
+        {/* Main Dashboard Area - Center Column */}
+        <div className="xl:col-span-6">
+          {/* Primary Dashboard Content */}
+          <div className="space-y-6">
+            {/* Dispatch Center - Hero Panel */}
+            <div className="h-72">
+              <PixelPanel title="Dispatch Center" color="green" headerIcon={null}>
+                <div className="h-full flex items-center justify-center">
+                  {currentDispatch ? (
+                    <div className="flex flex-col items-center">
+                      <div className="relative">
+                        <img 
+                          src={`/assets/pixel/${currentDispatch.pokemon.toLowerCase()}.png`} 
+                          alt={currentDispatch.pokemon} 
+                          className="mb-4" 
+                          style={{ imageRendering: 'pixelated', width: 96, height: 96 }} 
+                        />
+                        <div className="absolute -top-2 -right-2 w-4 h-4 bg-pixel-green rounded-full animate-pulse"></div>
+                      </div>
+                      <div className="text-center text-xl mb-2 text-pixel-yellow">{currentDispatch.pokemon}</div>
+                      <div className="text-sm text-pixel-blue">{currentDispatch.location}</div>
+                      <div className="text-xs text-green-400 mt-2">🎯 ACTIVE DISPATCH</div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-pixel-gray text-lg mb-2">⏳</div>
+                      <div className="text-pixel-gray text-sm">Awaiting dispatch...</div>
+                    </div>
+                  )}
+                </div>
+              </PixelPanel>
+            </div>
+             
+            {/* Rocket Agents - Primary Content */}
+            <div className="h-96">
+              <PixelPanel title="Rocket Agents Command" color="blue" headerIcon={null}>
+                <RocketAgentsPanel agents={agentsState} />
+              </PixelPanel>
+            </div>
           </div>
         </div>
-        {/* Escape Zone */}
-        <div className="col-span-12 md:col-span-2 md:row-span-2 mt-4">
-          <PixelPanel title="Escape Zone" color="red" headerIcon={null}>
-            <div className="flex flex-col items-center">
-              <img src="/assets/pixel/grave.svg" alt="Grave" style={{ imageRendering: 'pixelated', width: 32, height: 32 }} />
-              <div className="flex items-center mt-2">
-                <img src="/assets/pixel/pokeball.png" alt="Pokeball" style={{ imageRendering: 'pixelated', width: 24, height: 24 }} />
-                <span className="ml-2">x{escapeCount}</span>
-              </div>
+        
+        {/* Quick Stats Panel - Right Column on Desktop */}
+        <div className="xl:col-span-3">
+          <div className="space-y-4">
+            {/* Task Queue Monitor */}
+            <div className="h-48">
+              <PixelPanel title="Queue Monitor" color="orange" headerIcon={null}>
+                <div className="space-y-3">
+                  <div className="bg-pixel-dark p-2 rounded border border-pixel-border">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-pixel-green">pokemon_tasks</span>
+                      <span className="text-xs text-white font-bold">{systemState.queues[0]?.messages ?? 0}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-pixel-orange">⚡ Pending</span>
+                      <span className="text-white">{systemState.queues[0]?.messages ?? 0}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-pixel-blue">🤖 Workers</span>
+                      <span className="text-white">{systemState.queues[0]?.consumers ?? 0}</span>
+                    </div>
+                  </div>
+                </div>
+              </PixelPanel>
             </div>
-          </PixelPanel>
+            
+            {/* Escape Zone */}
+            <div className="h-48">
+              <PixelPanel title="Escape Zone" color="red" headerIcon={null}>
+                <div className="h-full flex flex-col items-center justify-center">
+                  <div className="relative mb-4">
+                    <img 
+                      src="/assets/pixel/grave.svg" 
+                      alt="Grave" 
+                      style={{ imageRendering: 'pixelated', width: 48, height: 48 }} 
+                    />
+                    {escapeCount > 0 && (
+                      <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+                        {escapeCount}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <img 
+                      src="/assets/pixel/pokeball.png" 
+                      alt="Pokeball" 
+                      style={{ imageRendering: 'pixelated', width: 20, height: 20 }} 
+                    />
+                    <span className="text-lg text-red-400">×{escapeCount}</span>
+                  </div>
+                  <div className="text-xs text-pixel-gray mt-2">ESCAPED</div>
+                </div>
+              </PixelPanel>
+            </div>
+             
+            {/* WebSocket Status */}
+            <div className="h-32">
+              <PixelPanel title="Connection" color="gray" headerIcon={null}>
+                <div className="h-full flex flex-col items-center justify-center">
+                  <div className={`text-2xl mb-2 ${
+                    systemState.system_health?.websocket === 'connected' 
+                      ? 'text-green-400' 
+                      : 'text-red-400'
+                  }`}>
+                    {systemState.system_health?.websocket === 'connected' ? '🟢' : '🔴'}
+                  </div>
+                  <div className="text-xs text-center">
+                    {systemState.system_health?.websocket === 'connected' ? 'ONLINE' : 'OFFLINE'}
+                  </div>
+                </div>
+              </PixelPanel>
+            </div>
+          </div>
         </div>
-        {/* System Log (full width) */}
-        <div className="col-span-12 mt-4">
+      </div>
+      
+      {/* System Log - Full Width Below */}
+      <div className="mt-6 max-w-7xl mx-auto">
+        <div className="h-96">
           <PixelPanel title="System Log" color="gray" headerIcon={null}>
             <TerminalLog logs={logs} />
           </PixelPanel>
         </div>
-      </div>
-      {/* Control panel (side on desktop, below on mobile) */}
-      <div className="w-full md:w-80 mt-8 md:mt-0 md:ml-8 flex-shrink-0">
-        <PixelControlPanel onAddPokemon={handleAddPokemon} onAddAgent={handleAddAgent} onReset={handleReset} />
-      </div>
-      {/* Mobile stacked arrows */}
-      <div className="md:hidden flex flex-col items-center w-full max-w-2xl mx-auto mt-4 space-y-2">
-        <PixelArrow direction="down" active={arrowActive['dispatch']} />
-        <PixelArrow direction="down" active={arrowActive['dispatch']} />
-        <PixelArrow direction="down" active={arrowActive['dlq']} />
       </div>
 
       {/* Toast notifications */}

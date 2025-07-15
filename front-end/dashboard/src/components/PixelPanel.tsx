@@ -18,13 +18,13 @@ const colorMap = {
 
 const PixelPanel: React.FC<PixelPanelProps> = ({ title, color, children, className = '', headerIcon }) => {
   return (
-    <div className={`relative rounded-none border-pixel border-4 shadow-pixel ${colorMap[color]} ${className}`}
+    <div className={`relative rounded-none border-pixel border-4 shadow-pixel ${colorMap[color]} ${className} h-full flex flex-col`}
       style={{ fontFamily: "'Press Start 2P', monospace" }}>
-      <div className={`flex items-center px-4 py-2 border-b-4 border-pixel-border text-white text-lg uppercase tracking-widest`}>
+      <div className={`flex items-center px-4 py-2 border-b-4 border-pixel-border text-white text-sm md:text-lg uppercase tracking-widest flex-shrink-0`}>
         {headerIcon && <span className="mr-2">{headerIcon}</span>}
         {title}
       </div>
-      <div className="p-4 bg-pixel-gray text-white text-xs" style={{ minHeight: 80 }}>
+      <div className="p-4 bg-pixel-gray text-white text-xs flex-1 overflow-hidden">
         {children}
       </div>
     </div>

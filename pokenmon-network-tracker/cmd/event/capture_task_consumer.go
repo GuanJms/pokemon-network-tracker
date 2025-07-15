@@ -79,6 +79,35 @@ func DeleteAllAgents() {
 	AgentList = nil
 }
 
+func ResetAllQueues() error {
+	conn, err := RabbitMQConnect()
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	if err != nil {
+		return err
+	}
+	defer ch.Close()
+
+	// Purge the pokemon_tasks queue to remove all messages and reset consumer count
+	_, err = ch.QueuePurge("pokemon_tasks", false)
+	if err != nil {
+		return err
+	}
+
+	// Purge the dead letter queue as well
+	_, err = ch.QueuePurge("dead_letter_tasks", false)
+	if err != nil {
+		// Don't fail if dead letter queue doesn't exist
+		return nil
+	}
+
+	return nil
+}
+
 func (r *RocketAgent) Stop() {
 	if r.channel != nil && r.consumerTag != "" {
 		_ = r.channel.Cancel(r.consumerTag, false)

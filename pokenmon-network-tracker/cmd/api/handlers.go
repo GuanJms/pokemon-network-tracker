@@ -13,6 +13,8 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+var agentId int = 1
+
 type SightingPayload struct {
 	event.Sighting
 	CaptureTime int    `json:"captureTime,omitempty"`
@@ -111,6 +113,8 @@ func (app *Config) SpawnRocketAgent(w http.ResponseWriter, r *http.Request) {
 	var a RocketAgentPayload
 
 	err := app.readJSON(w, r, &a)
+	a.Id = agentId
+	agentId++
 	if err != nil {
 		log.Println(err)
 		http.Error(w, "invalid input", http.StatusBadRequest)
@@ -291,6 +295,11 @@ func (app *Config) ResetAgents(w http.ResponseWriter, r *http.Request) {
 
 func (app *Config) ResetSystem(w http.ResponseWriter, r *http.Request) {
 	event.DeleteAllAgents()
+	// Reset queues to clear stale consumer metadata
+	if err := event.ResetAllQueues(); err != nil {
+		log.Printf("Failed to reset queues: %v", err)
+		// Don't fail the request, just log the error
+	}
 	event.ReSetTotalCount()
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
