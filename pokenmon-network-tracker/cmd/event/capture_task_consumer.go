@@ -16,7 +16,7 @@ const taskQueue = "pokemon_tasks"
 var AgentList []*RocketAgent
 
 type RocketAgent struct {
-	Id          int    `json:"id,omitempty"`
+	Id          int    `json:"id"`
 	Name        string `json:"name"`
 	ImageNum    int    `json:"imageNum"`
 	conn        *amqp.Connection

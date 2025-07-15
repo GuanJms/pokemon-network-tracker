@@ -355,10 +355,11 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-pixel-dark px-2 py-4 flex flex-col md:flex-row items-stretch md:items-start relative" style={{ fontFamily: "'Press Start 2P', monospace" }}>
       {/* Dashboard grid */}
-      <div className="flex-1 w-full max-w-6xl grid grid-cols-12 gap-4 auto-rows-min md:grid-cols-12 md:gap-4 sm:grid-cols-6 sm:gap-2 grid-cols-1 gap-2 relative">
+      {/* Responsive grid: single column on mobile, 2 cols on small screens, 12-col layout from md upward */}
+      <div className="flex-1 w-full max-w-6xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-4 md:gap-4 auto-rows-min relative">
         {/* Sightings panel removed */}
         {/* Dispatch Center */}
-        <div className="col-span-3 col-start-5 row-span-2 sm:col-span-6 sm:row-span-1 col-span-1 relative">
+        <div className="col-span-12 md:col-span-3 md:col-start-5 md:row-span-2 relative">
           <PixelPanel title="Dispatch Center" color="green" headerIcon={null}>
             {currentDispatch ? (
               <div className="flex flex-col items-center">
@@ -376,7 +377,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
         {/* Task Queue Monitor */}
-        <div className="col-span-3 col-start-9 row-span-2 sm:col-span-6 sm:row-span-1 col-span-1 relative">
+        <div className="col-span-12 md:col-span-3 md:col-start-9 md:row-span-2 relative">
           <PixelPanel title="Task Queue Monitor" color="orange" headerIcon={null}>
             <div className="bg-pixel-gray p-2 rounded mb-2 flex items-center">
               <span className="bg-pixel-green px-2 py-1 rounded mr-2">{systemState.queues[0]?.name || 'pokemon_tasks'}</span>
@@ -392,7 +393,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
         {/* Rocket Agents */}
-        <div className="col-span-6 row-span-2 mt-4 sm:col-span-6 sm:row-span-1 col-span-1 relative">
+        <div className="col-span-12 md:col-span-6 md:row-span-2 mt-4 relative">
           <PixelPanel title="Rocket Agents" color="blue" headerIcon={null}>
             <RocketAgentsPanel agents={agentsState} />
           </PixelPanel>
@@ -401,7 +402,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
         {/* Escape Zone */}
-        <div className="col-span-2 row-span-2 mt-4 sm:col-span-3 sm:row-span-1 col-span-1">
+        <div className="col-span-12 md:col-span-2 md:row-span-2 mt-4">
           <PixelPanel title="Escape Zone" color="red" headerIcon={null}>
             <div className="flex flex-col items-center">
               <img src="/assets/pixel/grave.svg" alt="Grave" style={{ imageRendering: 'pixelated', width: 32, height: 32 }} />
