@@ -154,6 +154,8 @@ const Dashboard: React.FC = () => {
       apiService.getQueueStats().then((qs)=>{
         setSystemState((prev)=>({...prev, queues:[qs]}));
       }).catch(()=>{});
+      // Immediately fetch DLQ count so Escape Zone is up to date
+      apiService.getDLQCount().then(count => setEscapeCount(count)).catch(()=>{});
       pushToast('System reset');
     }).catch(()=>{
       pushToast('Failed to reset backend');
