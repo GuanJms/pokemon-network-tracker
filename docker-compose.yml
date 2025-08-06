@@ -17,12 +17,10 @@ services:
       - "15672:15672"   # management UI
 
   dashboard:
-    build:
-      context: ./front-end/dashboard
-      args:
-        VITE_API_BASE: http://174.138.69.194:3000
-        VITE_WS_URL: ws://174.138.69.194:3000/state/events
+    image: jamesguan777/pokemon-dashboard:1.0.0
     ports:
       - "8080:80"
+    volumes:
+      - ./front-end/dashboard/public/config.js:/usr/share/nginx/html/config.js:ro
     depends_on:
       - api

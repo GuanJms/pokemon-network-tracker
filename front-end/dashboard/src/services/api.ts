@@ -1,10 +1,24 @@
 import type { SystemState, QueueStats } from '../types';
 
+// Extend Window interface for runtime configuration
+declare global {
+  interface Window {
+    __APP_CONFIG__?: {
+      apiBase?: string;
+      wsUrl?: string;
+    };
+  }
+}
+
 class ApiService {
   private baseUrl: string;
 
-  constructor(baseUrl: string = import.meta.env.VITE_API_BASE || 'http://localhost:3000') {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl?: string) {
+    // Priority: constructor param > window config > env var > default
+    this.baseUrl = baseUrl || 
+      window.__APP_CONFIG__?.apiBase || 
+      import.meta.env.VITE_API_BASE || 
+      'http://localhost:3000';
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {

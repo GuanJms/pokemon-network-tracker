@@ -9,7 +9,10 @@ import type { SystemState, LogEntry, TaskEvent, AgentStatus as AgentStatusType }
 import TerminalLog from './TerminalLog';
 import ToastNotification from './ToastNotification';
 
-const WS_URL = (import.meta.env.VITE_WS_URL as string) || 'ws://localhost:3000/state/events';
+// Priority: window config > env var > default
+const WS_URL = window.__APP_CONFIG__?.wsUrl || 
+  (import.meta.env.VITE_WS_URL as string) || 
+  'ws://localhost:3000/state/events';
 const apiService = new ApiService();
 
 interface Sighting {
