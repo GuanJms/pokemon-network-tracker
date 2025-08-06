@@ -2,9 +2,7 @@ version: "3.9"
 
 services:
   api:
-    build:
-      context: ./pokenmon-network-tracker
-      dockerfile: Dockerfile
+    image: jamesguan777/pokemon-tracker:1.0.0
     ports:
       - "3000:3000"
     depends_on:
